@@ -11,3 +11,34 @@ as the last two bytes are random. So the boot loading process false
 The boot_sector2.asm file compiles to a 512 byte file with The
 correct last 2 bytes. So the booting process completes succesfully.
 
+1b
+
+soumyayotimohanta@soumyayotis-MacBook-Pro:2301AI23/submit1 ‹main*›$ nasm -f bin message.asm -o message.bin
+soumyayotimohanta@soumyayotis-MacBook-Pro:2301AI23/submit1 ‹main*›$ qemu-system-i386 -drive format=raw,file=message.bin
+
+Explanation (Problem 1b):
+Boot sector loaded at 0x7C00 prints a custom string via BIOS int 0x10 (AH=0x0E).
+Sets segments/stack, points SI at message, loops with LODSB until 0 terminator, printing each char.
+Extra int 0x13 code (reading sectors) is beyond the required print task but harmless.
+Pads to 510 bytes and appends 0xAA55 signature so BIOS accepts it.
+Run: nasm -> message.bin, then qemu with -drive format=raw,file=message.bin; expect the message line.
+
+1c
+
+soumyayotimohanta@soumyayotis-MacBook-Pro:2301AI23/submit1 ‹main*›$ nasm -f bin bootloader.asm -o bootloader.bin
+soumyayotimohanta@soumyayotis-MacBook-Pro:2301AI23/submit1 ‹main*›$ nasm -f bin stage2.asm -o stage2.bin
+
+soumyayotimohanta@soumyayotis-MacBook-Pro:2301AI23/submit1 ‹main*›$ dd if=/dev/zero of=bootloader.img bs=512 count=2880
+soumyayotimohanta@soumyayotis-MacBook-Pro:2301AI23/submit1 ‹main*›$ dd if=bootloader.bin of=bootloader.img bs=512 count=1 conv=notrunc
+soumyayotimohanta@soumyayotis-MacBook-Pro:2301AI23/submit1 ‹main*›$ dd if=stage2.bin of=bootloader.img bs=512 seek=1 count=1 conv=notrunc
+
+soumyayotimohanta@soumyayotis-MacBook-Pro:2301AI23/submit1 ‹main*›$ qemu-system-i386 -fda bootloader.img 
+WARNING: Image format was not specified for 'bootloader.img' and probing guessed raw.
+         Automatically detecting the format is dangerous for raw images, write operations on block 0 will be restricted.
+         Specify the 'raw' format explicitly to remove the restrictions.
+Explanation (Problem 1c):
+Two-stage boot: Stage 1 at 0x7C00 prints "Loading Stage 2..." then reads sector 2 (one sector) to 0x8000:0000 via int 0x13.
+On success it far-jumps to 0x8000:0000; on failure prints an error and halts.
+Stage 2 sets DS=0x8000, prints "Welcome to Stage 2!" then loops forever.
+Image built by zero-filling, writing bootloader.bin to sector 1 and stage2.bin to sector 2 using dd.
+Run with qemu-system-i386 -drive format=raw,file=bootloader.img (or -fda). Expect two messages in sequence.
