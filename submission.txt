@@ -1,0 +1,13 @@
+1a
+
+boot_sector1.asm file compiles to a 510 bytes binary file.
+qemu load 512 bytes continuasly from the start of the .bin file
+but the bin file is only 510 bytes, so the last 2 bytes are random.\
+
+The BIOS uses the last two bytes to identify if the file is a
+boot disk, by comparing them to a specif value. Which is false
+as the last two bytes are random. So the boot loading process false
+
+The boot_sector2.asm file compiles to a 512 byte file with The
+correct last 2 bytes. So the booting process completes succesfully.
+
